@@ -659,8 +659,9 @@ const sidebarEl=$('sidebar'),mobileMenuBtn=$('mobile-menu-btn'),sidebarBackdrop=
 const signoutBtn=$('signout-btn'),sidebarAvatar=$('sidebar-avatar'),sidebarUsername=$('sidebar-username');
 
 let accessToken=null,tokenExpiresAt=0;
-let player=null,deviceId=null,sdkReady=false;
-let isPaused=true,currentPosition=0,currentDuration=0,seekDragging=false,pollTimer=null;
+let player=null,deviceId=null,sdkReady=false,deviceReady=false;
+let isPaused=true,currentPosition=0,currentDuration=0,positionTimestamp=0;
+let seekDragging=false,pollTimer=null,uiTimer=null;
 let userPlaylists=[],activePlaylistId=null,activeTrackUri=null,currentArtUrl=null;
 let searchState={query:'',tracks:[],hasMore:false,offset:0,total:0},searchDebounce=null;
 let settingsTab='themes',adMuted=false,lastAutoSkipUri=null;
@@ -1056,35 +1057,91 @@ async function apiFetch(url,options){
   return res;
 }
 
-window.onSpotifyWebPlaybackSDKReady=()=>{sdkReady=true;initPlayer();};
+window.onSpotifyWebPlaybackSDKReady=()=>{sdkReady=true;tryInitPlayer();};
+
+function tryInitPlayer(){
+  if(!sdkReady||player||!accessToken)return;
+  initPlayer();
+}
 
 function initPlayer(){
-  if(!sdkReady||player)return;
-  player=new Spotify.Player({name:'Spotify Clone',getOAuthToken:async cb=>cb(await getValidToken()),volume:(+volumeEl.value)/100});
+  if(player||!sdkReady||!accessToken)return;
+  player=new Spotify.Player({
+    name:'Spotify Clone',
+    getOAuthToken:async cb=>{
+      const t=await getValidToken();
+      if(t)cb(t);
+      else showToast('Session expired. Please sign in again.');
+    },
+    volume:(+volumeEl.value)/100
+  });
+
   player.addListener('ready',async({device_id})=>{
     deviceId=device_id;
-    try{await apiFetch('https://api.spotify.com/v1/me/player',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_ids:[device_id],play:false})});}catch(e){}
+    deviceReady=true;
+    try{
+      await apiFetch('https://api.spotify.com/v1/me/player',{
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({device_ids:[device_id],play:false})
+      });
+    }catch(e){}
   });
-  player.addListener('not_ready',()=>{deviceId=null;});
+  player.addListener('not_ready',()=>{deviceId=null;deviceReady=false;});
   player.addListener('initialization_error',({message})=>showToast('Init error: '+message));
   player.addListener('authentication_error',({message})=>showToast('Auth error: '+message));
   player.addListener('account_error',()=>showToast('Spotify Premium is required for playback.',8000));
   player.addListener('playback_error',({message})=>showToast('Playback error: '+message));
-  player.addListener('player_state_changed',state=>{
-    if(!state)return;
-    const t=state.track_window.current_track;
-    currentPosition=state.position;
-    currentDuration=state.duration;
-    isPaused=state.paused;
-    activeTrackUri=t.uri;
-    updateNowPlaying(t);
-    updateActiveTrack(t.uri);
+  player.addListener('player_state_changed',handlePlayerState);
+
+  player.connect()
+    .then(ok=>{if(!ok)showToast('Could not connect to the Spotify player.');})
+    .catch(()=>showToast('Could not connect to the Spotify player.'));
+}
+
+function handlePlayerState(state){
+  if(!state){
+    isPaused=true;
+    currentPosition=0;currentDuration=0;positionTimestamp=Date.now();
+    activeTrackUri=null;currentArtUrl=null;
+    playBtn.innerHTML=ICON_PLAY;
+    nowTitleEl.textContent='Nothing playing';
+    nowArtistEl.textContent='Select a track';
+    setImg(nowCoverEl,null,ICON_NOTE_SMALL);
+    document.title='Spotify';
+    updateActiveTrack(null);
+    if(settings.bgSource==='album')applyBackground();
     updateProgressUI();
-    startPolling();
-    applyEffectsToAudio();
-    handleAdMute(t);
-  });
-  player.connect();
+    return;
+  }
+  const tw=state.track_window||{};
+  const t=tw.current_track||null;
+  isPaused=!!state.paused;
+  currentDuration=state.duration||0;
+  currentPosition=Math.min(state.position||0,currentDuration||Infinity);
+  positionTimestamp=Date.now();
+  activeTrackUri=t?t.uri:null;
+
+  if(t)updateNowPlaying(t);
+  updateActiveTrack(activeTrackUri);
+  playBtn.innerHTML=isPaused?ICON_PLAY:ICON_PAUSE;
+  updateProgressUI();
+
+  startPolling();
+  startUiTick();
+  applyEffectsToAudio();
+  handleAdMute(t);
+}
+
+function getLivePosition(){
+  if(isPaused||!currentDuration)return currentPosition;
+  return Math.min(currentDuration,currentPosition+(Date.now()-positionTimestamp));
+}
+
+async function activateAudio(){
+  try{
+    if(player&&typeof player.activateElement==='function')await player.activateElement();
+  }catch(e){}
 }
 
 function handleAdMute(t){
@@ -1098,36 +1155,51 @@ function startPolling(){
   if(pollTimer)return;
   pollTimer=setInterval(async()=>{
     if(!player)return;
-    const state=await player.getCurrentState();
+    let state=null;
+    try{state=await player.getCurrentState();}catch(e){return;}
     if(!state)return;
-    currentPosition=state.position;
-    currentDuration=state.duration;
-    isPaused=state.paused;
+    isPaused=!!state.paused;
+    currentDuration=state.duration||0;
+    currentPosition=Math.min(state.position||0,currentDuration||Infinity);
+    positionTimestamp=Date.now();
     playBtn.innerHTML=isPaused?ICON_PLAY:ICON_PAUSE;
-    updateProgressUI();
+    if(!seekDragging)updateProgressUI();
     if(settings.autoSkipShort&&state.track_window&&state.track_window.current_track){
       const cur=state.track_window.current_track;
-      if(state.duration>0&&state.duration<60000&&lastAutoSkipUri!==cur.uri){lastAutoSkipUri=cur.uri;player.nextTrack();}
+      if(state.duration>0&&state.duration<60000&&lastAutoSkipUri!==cur.uri){
+        lastAutoSkipUri=cur.uri;
+        player.nextTrack();
+      }
     }
-  },500);
+  },1000);
+}
+
+function startUiTick(){
+  if(uiTimer)return;
+  uiTimer=setInterval(()=>{
+    if(!isPaused&&!seekDragging)updateProgressUI();
+  },250);
 }
 
 function updateNowPlaying(t){
-  nowTitleEl.textContent=t.name;
+  if(!t)return;
+  nowTitleEl.textContent=t.name||'Unknown';
   nowArtistEl.textContent=trackArtistText(t);
   const art=trackImage(t);
   currentArtUrl=art;
   setImg(nowCoverEl,art,ICON_NOTE_SMALL);
   playBtn.innerHTML=isPaused?ICON_PLAY:ICON_PAUSE;
+  document.title=(t.name?t.name+' • ':'')+'Spotify';
   if(settings.bgSource==='album')applyBackground();
 }
 
 function updateProgressUI(){
   if(seekDragging)return;
-  const pct=currentDuration?(currentPosition/currentDuration):0;
+  const pos=getLivePosition();
+  const pct=currentDuration?Math.max(0,Math.min(1,pos/currentDuration)):0;
   seekEl.value=Math.round(pct*1000);
   paintRange(seekEl);
-  timeCurrentEl.textContent=formatTime(currentPosition);
+  timeCurrentEl.textContent=formatTime(pos);
   timeTotalEl.textContent=formatTime(currentDuration);
 }
 
@@ -1703,7 +1775,8 @@ async function doSearch(query){
 }
 
 async function playSearchResult(index){
-  if(!deviceId){showToast('Player is starting up. Try again in a moment.');return;}
+  if(!deviceReady||!deviceId){showToast('Player is starting up. Try again in a moment.');return;}
+  await activateAudio();
   const uris=searchState.tracks.map(t=>t.uri).filter(Boolean);
   if(!uris.length)return;
   try{
@@ -1713,7 +1786,8 @@ async function playSearchResult(index){
 }
 
 async function playTrackInPlaylist(trackUri,playlistId){
-  if(!deviceId){showToast('Player is starting up. Try again in a moment.');return;}
+  if(!deviceReady||!deviceId){showToast('Player is starting up. Try again in a moment.');return;}
+  await activateAudio();
   try{
     let res=await apiFetch('https://api.spotify.com/v1/me/player/play?device_id='+deviceId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({context_uri:'spotify:playlist:'+playlistId,offset:{uri:trackUri}})});
     if(!res.ok)res=await apiFetch('https://api.spotify.com/v1/me/player/play?device_id='+deviceId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({uris:[trackUri]})});
@@ -1722,7 +1796,8 @@ async function playTrackInPlaylist(trackUri,playlistId){
 }
 
 async function playSingleUri(uri){
-  if(!deviceId){showToast('Player is starting up. Try again in a moment.');return;}
+  if(!deviceReady||!deviceId){showToast('Player is starting up. Try again in a moment.');return;}
+  await activateAudio();
   try{
     const res=await apiFetch('https://api.spotify.com/v1/me/player/play?device_id='+deviceId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({uris:[uri]})});
     if(!res.ok){const e=await res.json().catch(()=>({}));showToast('Playback failed: '+((e.error&&e.error.message)||res.status));}
@@ -2102,7 +2177,8 @@ function signOut(){
   if(!confirm('Sign out? This clears your Spotify session so you can sign back in with the right permissions.'))return;
   try{if(player)player.disconnect();}catch(e){}
   if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
-  player=null;deviceId=null;sdkReady=false;
+  if(uiTimer){clearInterval(uiTimer);uiTimer=null;}
+  player=null;deviceId=null;deviceReady=false;sdkReady=false;
   accessToken=null;tokenExpiresAt=0;
   currentUserId=null;currentUserProfile=null;
   clearCaches();
@@ -2112,7 +2188,7 @@ function signOut(){
   window.location.href='https://accounts.spotify.com/en/logout';
 }
 
-function showApp(){loginEl.style.display='none';appEl.style.display='grid';initPlayer();}
+function showApp(){loginEl.style.display='none';appEl.style.display='grid';tryInitPlayer();}
 
 async function bootApp(){
   try{
@@ -2158,23 +2234,40 @@ bassSlider.addEventListener('input',()=>{setBass(+bassSlider.value);});
 $('bass-down').addEventListener('click',()=>{setBass(Math.max(-12,currentBass-1));});
 $('bass-up').addEventListener('click',()=>{setBass(Math.min(12,currentBass+1));});
 
-playBtn.addEventListener('click',()=>{if(!player)return;if(isPaused)player.resume();else player.pause();});
-prevBtn.addEventListener('click',()=>player&&player.previousTrack());
-nextBtn.addEventListener('click',()=>player&&player.nextTrack());
+playBtn.addEventListener('click',async()=>{
+  if(!player){showToast('Player is not ready yet.');return;}
+  await activateAudio();
+  try{if(isPaused)await player.resume();else await player.pause();}catch(e){}
+});
+prevBtn.addEventListener('click',async()=>{
+  if(!player)return;
+  await activateAudio();
+  player.previousTrack();
+});
+nextBtn.addEventListener('click',async()=>{
+  if(!player)return;
+  await activateAudio();
+  player.nextTrack();
+});
 
 seekEl.addEventListener('input',()=>{
-  seekDragging=true;paintRange(seekEl);
-  timeCurrentEl.textContent=formatTime(currentDuration*(seekEl.value/1000));
+  seekDragging=true;
+  paintRange(seekEl);
+  const pos=currentDuration*(+seekEl.value/1000);
+  timeCurrentEl.textContent=formatTime(pos);
 });
 seekEl.addEventListener('change',async()=>{
-  const pos=Math.floor(currentDuration*(seekEl.value/1000));
+  const target=Math.floor(currentDuration*(+seekEl.value/1000));
+  currentPosition=target;
+  positionTimestamp=Date.now();
+  try{if(player)await player.seek(target);}catch(e){}
   seekDragging=false;
-  if(player)await player.seek(pos);
+  updateProgressUI();
 });
 
 volumeEl.addEventListener('input',()=>{
   paintRange(volumeEl);
-  if(player&&!adMuted)player.setVolume(volumeEl.value/100);
+  if(player&&!adMuted)player.setVolume((+volumeEl.value)/100);
 });
 
 document.addEventListener('keydown',e=>{
@@ -2190,8 +2283,8 @@ document.addEventListener('keydown',e=>{
   }
   if(!player)return;
   if(e.key===' '||e.code==='Space'){e.preventDefault();if(isPaused)player.resume();else player.pause();}
-  else if(e.key==='ArrowLeft')player.seek(Math.max(0,currentPosition-settings.seekStep*1000));
-  else if(e.key==='ArrowRight')player.seek(Math.min(currentDuration,currentPosition+settings.seekStep*1000));
+  else if(e.key==='ArrowLeft')player.seek(Math.max(0,getLivePosition()-settings.seekStep*1000));
+  else if(e.key==='ArrowRight')player.seek(Math.min(currentDuration,getLivePosition()+settings.seekStep*1000));
   else if(e.key==='n'||e.key==='N')player.nextTrack();
   else if(e.key==='p'||e.key==='P')player.previousTrack();
   else if(e.key==='f'||e.key==='F')fxToggle.click();
@@ -2212,6 +2305,7 @@ if(window.visualViewport){
 paintRange(seekEl);paintRange(volumeEl);paintRange(pitchSlider);paintRange(bassSlider);
 pitchValueEl.textContent='1.00×';bassValueEl.textContent='+0 dB';
 updateFxStatus();
+startUiTick();
 
 detectDevice();
 
@@ -2252,4 +2346,4 @@ detectDevice();
 })();
 </script>
 </body>
-  </html>
+</html>
