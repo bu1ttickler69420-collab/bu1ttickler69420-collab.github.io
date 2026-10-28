@@ -223,7 +223,6 @@
   .player-right input[type=range]{max-width:100px}
   .mini-btn{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--text-subdued);transition:all .15s;border:1px solid transparent;flex-shrink:0}
   .mini-btn:hover{color:var(--text-base);background:rgba(255,255,255,.08)}
-  .mini-btn.active{color:var(--brand);background:rgba(255,255,255,.08);border-color:color-mix(in srgb,var(--brand) 45%,transparent)}
   .mini-btn svg{width:18px;height:18px}
 
   input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;cursor:pointer;flex:1;min-width:0;--pct:0%;background:linear-gradient(to right,#fff 0%,#fff var(--pct),rgba(255,255,255,.2) var(--pct),rgba(255,255,255,.2) 100%);touch-action:pan-y}
@@ -231,28 +230,6 @@
   input[type=range]:hover::-webkit-slider-thumb,input[type=range]:active::-webkit-slider-thumb{opacity:1}
   input[type=range]::-moz-range-thumb{width:12px;height:12px;border:none;border-radius:50%;background:#fff}
   input[type=range]:hover{background:linear-gradient(to right,var(--brand) 0%,var(--brand) var(--pct),rgba(255,255,255,.2) var(--pct),rgba(255,255,255,.2) 100%)}
-
-  .fx-panel{position:absolute;bottom:100%;right:16px;width:340px;max-width:calc(100vw - 32px);max-height:calc(100vh - var(--player-h) - 40px);background:var(--bg-card);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:20px;margin-bottom:10px;box-shadow:0 16px 48px rgba(0,0,0,.7);z-index:50;overflow-y:auto;overscroll-behavior:contain}
-  .fx-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
-  .fx-title{font-size:16px;font-weight:700}
-  .fx-status{font-size:11px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.08);color:var(--text-subdued);flex-shrink:0}
-  .fx-status.active{background:rgba(29,185,84,.2);color:var(--brand)}
-  .fx-status.warn{background:rgba(255,193,7,.15);color:#ffc107}
-  .fx-status.error{background:rgba(255,71,87,.15);color:var(--danger)}
-  .fx-control{margin-bottom:18px}
-  .fx-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-  .fx-label{font-size:13px;font-weight:600}
-  .fx-value{font-size:12px;color:var(--text-subdued);font-variant-numeric:tabular-nums;font-weight:500}
-  .fx-slider-wrap{display:flex;align-items:center;gap:8px}
-  .fx-step-btn{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.1);color:var(--text-subdued);font-size:16px;line-height:1;transition:all .15s;flex-shrink:0}
-  .fx-step-btn:hover{background:rgba(255,255,255,.2);color:var(--text-base)}
-  .fx-help{font-size:11px;color:var(--text-subdued);line-height:1.5;margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:6px;border-left:2px solid rgba(255,255,255,.15)}
-  .fx-actions{display:flex;gap:8px;margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.1)}
-  .fx-action{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:700;text-align:center;transition:all .15s;min-height:40px}
-  .fx-action.primary{background:var(--brand);color:#000}
-  .fx-action.primary:hover{background:var(--brand-hover)}
-  .fx-action.secondary{background:rgba(255,255,255,.1);color:var(--text-base)}
-  .fx-action.secondary:hover{background:rgba(255,255,255,.18)}
 
   .add-popover{position:fixed;width:340px;max-width:calc(100vw - 24px);max-height:min(480px,70vh);background:var(--bg-card);border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.75);z-index:400;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,.08)}
   .add-popover-header{padding:14px 16px 4px;font-size:15px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -428,7 +405,6 @@
   body[data-device="mobile"] .track-album,
   body[data-device="mobile"] .track-duration{display:none}
   body[data-device="mobile"] .track-add-btn{opacity:1;width:34px;height:34px}
-  body[data-device="mobile"] .fx-panel{position:fixed;inset:auto 8px calc(var(--player-h) + 12px + var(--sab)) 8px;width:auto;max-width:none;max-height:70vh;margin-bottom:0}
   body[data-device="mobile"] .queue-drawer{left:max(6px,var(--sal));right:max(6px,var(--sar));top:max(6px,var(--sat));bottom:calc(var(--player-h) + 12px + var(--sab));width:auto;max-width:none}
   body[data-device="mobile"] .add-popover{left:8px!important;right:8px;width:auto;top:auto!important;bottom:calc(var(--player-h) + 12px + var(--sab));max-height:70vh}
   body[data-device="mobile"] .settings-head{flex-direction:column;align-items:flex-start}
@@ -460,7 +436,6 @@
 
   @media (max-height:500px) and (orientation:landscape){
     :root,body[data-device="mobile"]{--player-h:76px}
-    .fx-panel{max-height:calc(100vh - 100px)}
     .toast{bottom:calc(var(--player-h) + 12px)}
   }
   @media (prefers-reduced-motion:reduce){
@@ -526,41 +501,6 @@
   <main class="main" id="main"></main>
 
   <div class="player">
-    <div class="fx-panel" id="fx-panel" style="display:none">
-      <div class="fx-header">
-        <div class="fx-title">Audio Effects</div>
-        <div class="fx-status" id="fx-status">Idle</div>
-      </div>
-      <div class="fx-control">
-        <div class="fx-row">
-          <span class="fx-label">Speed &amp; Pitch</span>
-          <span class="fx-value" id="pitch-value">1.00×</span>
-        </div>
-        <div class="fx-slider-wrap">
-          <button class="fx-step-btn" id="pitch-down">−</button>
-          <input type="range" id="pitch-slider" min="50" max="150" value="100">
-          <button class="fx-step-btn" id="pitch-up">+</button>
-        </div>
-        <div class="fx-help">Changes tempo and pitch together.</div>
-      </div>
-      <div class="fx-control">
-        <div class="fx-row">
-          <span class="fx-label">Bass</span>
-          <span class="fx-value" id="bass-value">+0 dB</span>
-        </div>
-        <div class="fx-slider-wrap">
-          <button class="fx-step-btn" id="bass-down">−</button>
-          <input type="range" id="bass-slider" min="-12" max="12" value="0">
-          <button class="fx-step-btn" id="bass-up">+</button>
-        </div>
-        <div class="fx-help">Bass runs through the browser audio pipeline.</div>
-      </div>
-      <div class="fx-actions">
-        <button class="fx-action secondary" id="fx-reset">Reset</button>
-        <button class="fx-action primary" id="fx-close">Close</button>
-      </div>
-    </div>
-
     <div class="player-left">
       <div class="now-cover" id="now-cover">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 18V6l10-2v12"/><circle cx="6" cy="18" r="2.6"/><circle cx="16" cy="16" r="2.6"/></svg>
@@ -585,12 +525,6 @@
     <div class="player-right">
       <button class="mini-btn" id="queue-btn" title="Queue" aria-label="Queue">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h13v2H3zm0 5h13v2H3zm0 5h9v2H3zm15-6.5v7a2.5 2.5 0 1 0 2 2.45V6h-2z"/></svg>
-      </button>
-      <button class="mini-btn" id="fx-toggle" title="Audio effects" aria-label="Audio effects">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
-          <circle cx="9" cy="6" r="2" fill="currentColor"/><circle cx="15" cy="12" r="2" fill="currentColor"/><circle cx="8" cy="18" r="2" fill="currentColor"/>
-        </svg>
       </button>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M16 9a4 4 0 010 6"/></svg>
       <input type="range" id="volume" min="0" max="100" value="70">
@@ -652,8 +586,7 @@ const loginEl=$('login'),appEl=$('app'),mainEl=$('main'),playlistListEl=$('playl
 const nowCoverEl=$('now-cover'),nowTitleEl=$('now-title'),nowArtistEl=$('now-artist');
 const playBtn=$('play-btn'),prevBtn=$('prev-btn'),nextBtn=$('next-btn');
 const seekEl=$('seek'),timeCurrentEl=$('time-current'),timeTotalEl=$('time-total'),volumeEl=$('volume');
-const toastEl=$('toast'),fxPanel=$('fx-panel'),fxToggle=$('fx-toggle'),fxStatus=$('fx-status');
-const pitchSlider=$('pitch-slider'),pitchValueEl=$('pitch-value'),bassSlider=$('bass-slider'),bassValueEl=$('bass-value');
+const toastEl=$('toast');
 const bgLayer=$('bg-layer'),bgDim=$('bg-dim'),queueDrawer=$('queue-drawer'),queueBody=$('queue-body');
 const sidebarEl=$('sidebar'),mobileMenuBtn=$('mobile-menu-btn'),sidebarBackdrop=$('sidebar-backdrop');
 const signoutBtn=$('signout-btn'),sidebarAvatar=$('sidebar-avatar'),sidebarUsername=$('sidebar-username');
@@ -671,8 +604,6 @@ let THEMES=[];
 let themesStatus={state:'idle',count:0,message:'Not loaded'};
 
 const cache=new Map(),searchCache=new Map(),plMembership=new Map(),membershipLoading=new Set();
-
-let sdkAudioEl=null,bassCtx=null,bassFilter=null,bassHookState='idle',currentPitch=1.0,currentBass=0;
 
 let settings=loadSettings();
 
@@ -1129,7 +1060,6 @@ function handlePlayerState(state){
 
   startPolling();
   startUiTick();
-  applyEffectsToAudio();
   handleAdMute(t);
 }
 
@@ -1204,76 +1134,6 @@ function updateProgressUI(){
 }
 
 function updateActiveTrack(uri){document.querySelectorAll('.track-row').forEach(r=>{r.classList.toggle('active',r.dataset.uri===uri);});}
-
-function findSdkAudio(){
-  const audios=document.querySelectorAll('audio');
-  for(const el of audios){if(el.src&&el.src.startsWith('blob:'))return el;}
-  for(const el of audios){if(el.srcObject)return el;}
-  return null;
-}
-
-function applyPitchToElement(el,rate){
-  try{
-    el.playbackRate=rate;
-    if('preservesPitch' in el)el.preservesPitch=false;
-    if('mozPreservesPitch' in el)el.mozPreservesPitch=false;
-    if('webkitPreservesPitch' in el)el.webkitPreservesPitch=false;
-    return true;
-  }catch(e){return false;}
-}
-
-function applyEffectsToAudio(){
-  const el=findSdkAudio();
-  if(el){sdkAudioEl=el;applyPitchToElement(el,currentPitch);}
-}
-
-async function tryHookBass(){
-  if(bassHookState==='success')return true;
-  if(bassHookState==='failed')return false;
-  if(bassHookState==='trying')return false;
-  bassHookState='trying';updateFxStatus();
-  sdkAudioEl=findSdkAudio();
-  if(!sdkAudioEl){bassHookState='failed';updateFxStatus();return false;}
-  applyPitchToElement(sdkAudioEl,currentPitch);
-  try{
-    const Ctx=window.AudioContext||window.webkitAudioContext;
-    const ctx=new Ctx();
-    const src=ctx.createMediaElementSource(sdkAudioEl);
-    const filter=ctx.createBiquadFilter();
-    filter.type='lowshelf';filter.frequency.value=200;filter.gain.value=currentBass;
-    src.connect(filter);filter.connect(ctx.destination);
-    const analyser=ctx.createAnalyser();analyser.fftSize=256;filter.connect(analyser);
-    await new Promise(r=>setTimeout(r,1200));
-    const data=new Uint8Array(analyser.frequencyBinCount);
-    analyser.getByteFrequencyData(data);
-    let max=0;for(let i=0;i<data.length;i++)if(data[i]>max)max=data[i];
-    if(max===0&&!isPaused){bassHookState='failed';updateFxStatus();return false;}
-    bassCtx=ctx;bassFilter=filter;bassHookState='success';updateFxStatus();return true;
-  }catch(e){bassHookState='failed';updateFxStatus();return false;}
-}
-
-function updateFxStatus(){
-  if(bassHookState==='success'){fxStatus.textContent='Active';fxStatus.className='fx-status active';}
-  else if(bassHookState==='failed'){fxStatus.textContent='Bass unavailable';fxStatus.className='fx-status error';}
-  else if(bassHookState==='trying'){fxStatus.textContent='Hooking…';fxStatus.className='fx-status warn';}
-  else if(currentPitch!==1){fxStatus.textContent='Pitch active';fxStatus.className='fx-status active';}
-  else{fxStatus.textContent='Idle';fxStatus.className='fx-status';}
-}
-
-function setPitch(rate){
-  currentPitch=rate;pitchSlider.value=Math.round(rate*100);paintRange(pitchSlider);
-  pitchValueEl.textContent=rate.toFixed(2)+'×';
-  if(sdkAudioEl)applyPitchToElement(sdkAudioEl,rate);else applyEffectsToAudio();
-  updateFxStatus();
-}
-
-function setBass(db){
-  currentBass=db;bassSlider.value=db;paintRange(bassSlider);
-  bassValueEl.textContent=(db>=0?'+':'')+db+' dB';
-  if(bassFilter)bassFilter.gain.value=db;
-  else tryHookBass().then(ok=>{if(ok&&bassFilter)bassFilter.gain.value=db;});
-  updateFxStatus();
-}
 
 async function fetchUserProfile(){
   const res=await apiFetch('https://api.spotify.com/v1/me');
@@ -2036,7 +1896,7 @@ function tabBody(tab){
         <div class="setting-control"><label class="switch"><input type="checkbox" id="auto-skip" ${settings.autoSkipShort?'checked':''}><span></span></label></div>
       </div>
       <div class="setting-row">
-        <div><div class="setting-label">Keyboard shortcuts</div><div class="setting-sub">Space, arrows, N, P, F, Q</div></div>
+        <div><div class="setting-label">Keyboard shortcuts</div><div class="setting-sub">Space, arrows, N, P, Q</div></div>
         <div class="setting-control"><label class="switch"><input type="checkbox" id="shortcuts" ${settings.shortcuts?'checked':''}><span></span></label></div>
       </div>
     </div>`;
@@ -2220,20 +2080,6 @@ $('queue-btn').addEventListener('click',()=>{
 });
 $('queue-close').addEventListener('click',()=>queueDrawer.classList.remove('open'));
 
-fxToggle.addEventListener('click',()=>{
-  const open=fxPanel.style.display!=='none';
-  fxPanel.style.display=open?'none':'block';
-  fxToggle.classList.toggle('active',!open);
-});
-$('fx-close').addEventListener('click',()=>{fxPanel.style.display='none';fxToggle.classList.remove('active');});
-$('fx-reset').addEventListener('click',()=>{setPitch(1.0);setBass(0);});
-pitchSlider.addEventListener('input',()=>{setPitch((+pitchSlider.value)/100);});
-$('pitch-down').addEventListener('click',()=>{setPitch(Math.max(0.5,Math.round((currentPitch-0.05)*100)/100));});
-$('pitch-up').addEventListener('click',()=>{setPitch(Math.min(1.5,Math.round((currentPitch+0.05)*100)/100));});
-bassSlider.addEventListener('input',()=>{setBass(+bassSlider.value);});
-$('bass-down').addEventListener('click',()=>{setBass(Math.max(-12,currentBass-1));});
-$('bass-up').addEventListener('click',()=>{setBass(Math.min(12,currentBass+1));});
-
 playBtn.addEventListener('click',async()=>{
   if(!player){showToast('Player is not ready yet.');return;}
   await activateAudio();
@@ -2275,7 +2121,6 @@ document.addEventListener('keydown',e=>{
   const tag=(e.target&&e.target.tagName)||'';
   if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
   if(e.key==='Escape'){
-    fxPanel.style.display='none';fxToggle.classList.remove('active');
     queueDrawer.classList.remove('open');
     document.querySelectorAll('.add-popover').forEach(el=>el.remove());
     closeSidebar();
@@ -2287,7 +2132,6 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='ArrowRight')player.seek(Math.min(currentDuration,getLivePosition()+settings.seekStep*1000));
   else if(e.key==='n'||e.key==='N')player.nextTrack();
   else if(e.key==='p'||e.key==='P')player.previousTrack();
-  else if(e.key==='f'||e.key==='F')fxToggle.click();
   else if(e.key==='q'||e.key==='Q')$('queue-btn').click();
 });
 
@@ -2302,9 +2146,7 @@ if(window.visualViewport){
   window.visualViewport.addEventListener('resize',handleResize,{passive:true});
 }
 
-paintRange(seekEl);paintRange(volumeEl);paintRange(pitchSlider);paintRange(bassSlider);
-pitchValueEl.textContent='1.00×';bassValueEl.textContent='+0 dB';
-updateFxStatus();
+paintRange(seekEl);paintRange(volumeEl);
 startUiTick();
 
 detectDevice();
